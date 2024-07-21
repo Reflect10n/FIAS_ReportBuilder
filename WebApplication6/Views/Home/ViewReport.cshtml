@@ -1,0 +1,143 @@
+﻿@model List<LevelReport>
+
+@{
+    ViewData["Title"] = "Отчёт по объектам";
+}
+
+<div class="container">
+    @if (Model.Count > 0)
+    {
+        <div class="text-center title-div">
+            <h1 class="display-4">Отчёт по измененным адресным объектам за <i>@ViewData["UpdateDate"]</i></h1>
+        </div>
+
+        <div class="text-left title-div">
+            <a class="btn btn-primary" href="https://fias.nalog.ru/Search/Extended#" target="_blank">Найти элемент в реестре ФИАС (по уникальным идентификаторам)</a>
+            <div>
+                <small><i>Вы можете нажать по строке, тогда скопируется уникальный идентификатор объекта</i></small>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-select">
+                <label for="actionFilter">Фильтр по действиям:</label>
+                <select id="actionFilter" class="form-control" multiple="multiple">
+                </select>
+            </div>
+            <div class="filter-select">
+                <label for="nameFilter">Фильтр по уровню объекта:</label>
+                <select id="nameFilter" class="form-control" multiple="multiple">
+                </select>
+            </div>
+            <button class="btn btn-secondary reset-filters mt-2 bg-danger">Сбросить фильтры</button>
+        </div>
+
+        @foreach (var levelReport in Model)
+        {
+            <div class="table-level-report" data-level-report-name="@levelReport.Name">
+            <h2>@levelReport.Name</h2>
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Тип объекта</th>
+                        <th>Наименование</th>
+                        <th>Действие</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var obj in levelReport.Objects)
+                    {
+                        <tr data-guid="@obj.GuID" data-typename="@obj.TypeName" data-name="@obj.Name" data-action="@obj.ActionDescription">
+                            <td>@obj.TypeName</td>
+                            <td>@obj.Name</td>
+                            <td>@obj.ActionDescription</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            </div>
+        }
+    }
+    else
+    {
+        <div class="text-center">
+            <h1 class="display-4">Нет данных, заполните базу данных</h1>
+        </div>
+    }
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        $.getJSON('/Filter/GetOperations', function (data) {
+            let actionFilter = $('#actionFilter');
+            data.forEach(function (action) {
+                actionFilter.append('<option value="' + action + '">' + action + '</option>');
+            });
+        });
+        $.getJSON('/Filter/GetObjectLevels', function (data) {
+            let nameFilter = $('#nameFilter');
+            data.forEach(function (name) {
+                nameFilter.append('<option value="' + name + '">' + name + '</option>');
+            });
+        });
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function () {
+                toastr.success('GuID скопирован в буфер обмена!');
+            }, function (err) {
+                toastr.error('Не удалось скопировать GuID.');
+            });
+        }
+        var rows = document.querySelectorAll("table tbody tr");
+        rows.forEach(function (row) {
+            row.addEventListener("click", function () {
+                var guid = row.getAttribute("data-guid");
+                if (guid) {
+                    copyToClipboard(guid);
+                }
+            });
+        });
+
+        function filterTable() {
+            var selectedActions = $('#actionFilter').val() || [];
+            var selectedNames = $('#nameFilter').val() || [];
+
+            $('.table-level-report').each(function () {
+                var name = $(this).data('level-report-name');
+                var showTable = true;
+
+                if (selectedNames.length > 0 && !selectedNames.includes(name)) {
+                    showTable = false;
+                }
+
+                if (showTable) {
+                    $(this).show();
+                    $(this).find('tbody tr').each(function () {
+                        var action = $(this).data('action');
+                        var showRow = true;
+
+                        if (selectedActions.length > 0 && !selectedActions.includes(action)) {
+                            showRow = false;
+                        }
+
+                        if (showRow) {
+                            $(this).show();
+                        } else {
+                            $(this).hide();
+                        }
+                    });
+                } else {
+                    $(this).hide();
+                }
+            });
+        }
+        $('#actionFilter, #nameFilter').on('change', function () {
+            filterTable();
+        });
+        $('.reset-filters').on('click', function () {
+            $('#actionFilter').val(null).trigger('change');
+            $('#nameFilter').val(null).trigger('change');
+            filterTable();
+        });
+    });
+</script>

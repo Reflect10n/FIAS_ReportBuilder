@@ -1,0 +1,39 @@
+﻿@{
+    ViewData["Title"] = "Обновление БД";
+}
+
+<div class="text-center">
+    <h1 class="display-4">Обновление БД</h1>
+
+    <div class="button-container">
+        <a class="btn btn-primary" href="https://fias.nalog.ru/Frontend" target="_blank">Скачать актуальный архив изменений</a>
+        <button class="btn btn-primary" id="updateDbButton">Загрузить архив .zip с компьютера</button>
+        <input type="file" id="fileInput" accept=".zip" style="display:none;" />
+    </div>
+</div>
+
+<script>
+    document.getElementById('updateDbButton').addEventListener('click', function () {
+        document.getElementById('fileInput').click();
+    });
+
+    document.getElementById('fileInput').addEventListener('change', function (event) {
+        var file = event.target.files[0];
+        var formData = new FormData();
+        formData.append('file', file);
+
+        fetch('/Home/UploadAndAnalyzeZip', {
+            method: 'POST',
+            body: formData
+        })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+                alert('Обновление БД завершено.');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+    });
+
+</script>
